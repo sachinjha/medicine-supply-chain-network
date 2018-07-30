@@ -1,0 +1,186 @@
+/**
+ * New model file
+ */
+
+namespace org.acme.medicine.supply_chain_network
+
+// BASE DEFINTIONS
+
+enum UnitType {
+  o STRIP
+  o BOTTLE
+}
+
+enum ShippingRequestStatus {
+  o CREATED 
+  o ACCEPTED 
+  o SHIPPED
+}
+
+enum PoStatus {
+   o OPEN
+   o ACCEPTED
+   o REJECTED
+   o CLOSED
+}
+
+enum SoStatus {
+  o OPEN
+  o CLOSED
+}
+
+enum ContainerStatus {
+  o WITHCREATOR
+  o WITHLOGISTICS
+  o WITHRECEIVER
+}
+
+asset ManufacturingBatch identified by batchId {
+  o String batchId
+  o DateTime  manufacturingDate
+  o DateTime expiryDate
+  o String location
+  --> Manufacturer manufacturer
+}
+
+asset MedicineUnit identified by unitId {
+  o String unitId
+  o String name
+  o UnitType type
+  o DateTime manufacturingDate
+  o DateTime expiryDate
+  --> ManufacturingBatch batch 
+  --> Company owner optional
+  --> Person soldTo optional
+}
+
+concept MedicineOrderUnit {
+  o Integer quantity
+  o String medicineName
+}
+
+asset PurchaseOrder identified by poId {
+  o String poId
+  o MedicineOrderUnit[] medicines 
+  --> Company createdBy
+  --> Company createdFor
+  o PoStatus status
+
+}
+
+asset SalesOrder identified by soId {
+  o String soId
+  --> PurchaseOrder purchaseOrder
+  --> Company createdBy
+  o SoStatus status
+}
+
+asset ShippingRequest identified by reqId {
+  o String reqId 
+  --> SalesOrder salesOrder
+  --> LogisticsProvider  logistics
+  --> Company from
+  --> Company to
+  o ShippingRequestStatus status
+}
+
+asset ShippingContainer identified by containerId {
+  o String containerId
+  --> ShippingRequest request 
+  --> MedicineUnit[] medicines
+  o ContainerStatus status
+  --> Company owner 
+  
+}
+
+concept VehicleDetails {
+  --> Manufacturer make
+  o String modelType
+  o String colour
+}
+
+abstract participant Company identified by companyId {
+  o String companyId
+  o String name
+}
+
+participant LogisticsProvider extends Company {
+
+}
+
+participant Distributor extends Company {
+
+}
+
+// MANUFACTURE DEFINITIONS
+participant Manufacturer extends Company { 
+
+}
+
+participant Person identified by personId {
+  o String personId
+  o String name
+  o String email optional
+}
+
+transaction AddManufacturingBatchRecord { 
+  o String batchId 
+  o String  location 
+}
+
+transaction AddMedicineUnitRecord {
+  o String unitId 
+  o String  name
+  o UnitType type
+  --> ManufacturingBatch manufacturingBatch
+}
+
+transaction CreatePurchaseOrder {
+  o String poId 
+  o Integer quantity
+  o String medicineName
+  --> Company createdBy
+  --> Company createdFor
+}
+
+transaction AcceptOrder {
+  --> PurchaseOrder purchaseOrder
+  --> Company createdBy 
+}
+
+transaction CreateShippingRequest{
+  --> SalesOrder salesOrder 
+  --> LogisticsProvider logisticsProvider   
+}
+
+transaction AcceptShippingRequest{
+  --> ShippingRequest shippingRequest 
+}
+
+transaction GoodsHandedOver{
+  --> ShippingContainer shippingContainer 
+  --> Company newOwner 
+  
+}
+
+transaction GoodsPickedUp {
+  --> ShippingContainer shippingContainer 
+ 
+}
+
+transaction GoodsReceived {
+  --> ShippingContainer shippingContainer 
+}
+
+transaction SoldToCustomer {
+  --> Person customer 
+  --> MedicineUnit medicineUnit
+  --> Company retailer
+}
+
+transaction VerifyAuthenticity {
+  --> Person verifier
+  --> MedicineUnit medicineUnit
+}
+
+
