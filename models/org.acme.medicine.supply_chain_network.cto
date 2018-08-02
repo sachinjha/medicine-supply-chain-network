@@ -93,11 +93,7 @@ asset ShippingContainer identified by containerId {
   
 }
 
-concept VehicleDetails {
-  --> Manufacturer make
-  o String modelType
-  o String colour
-}
+
 
 abstract participant Company identified by companyId {
   o String companyId
