@@ -3,28 +3,22 @@ query selectMedicineUnitsByNameAndOwnerForGivenQuantity {
   description: "Select all medicineUnits by owner and name"
   statement:
       SELECT org.acme.medicine.supply_chain_network.MedicineUnit 
-        WHERE ((name == _$name ) & ( owner == _$owner))
-            ORDER BY manufacturingDate 
+        WHERE ((name == _$name ) AND ( owner == _$owner) )
+            ORDER BY manufacturingDate ASC
                 LIMIT _$quantity
 }
 
-query selectCommoditiesByExchange {
-  description: "Select all commodities based on their main exchange"
+query getPuchaseOrders {
+    description: "Select all purhcaseOrder owned by participant"
   statement:
-      SELECT org.acme.trading.Commodity
-          WHERE (mainExchange==_$exchange)
+      SELECT org.acme.medicine.supply_chain_network.PurchaseOrder 
+        LIMIT _$quantity
 }
 
-query selectCommoditiesByOwner {
-  description: "Select all commodities based on their owner"
+query getSalesOrders {
+    description: "Select all SalesOrders owned by participant"
   statement:
-      SELECT org.acme.trading.Commodity
-          WHERE (owner == _$owner)
+      SELECT org.acme.medicine.supply_chain_network.SalesOrder 
+        LIMIT _$quantity
 }
 
-query selectCommoditiesWithHighQuantity {
-  description: "Select commodities based on quantity"
-  statement:
-      SELECT org.acme.trading.Commodity
-          WHERE (quantity > 60)
-}

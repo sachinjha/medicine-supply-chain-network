@@ -23,11 +23,9 @@ const chai = require('chai');
 chai.should();
 chai.use(require('chai-as-promised'));
 
-const namespace = 'org.acme.vehicle_network';
-const orderId = '1000-1000-1000-1000';
-const vin = '1a2b3c4d5e6f7g8h9';
+const namespace = 'org.acme.medicine.supply_chain_network';
 
-describe('Manufacture network', () => {
+describe('medicine supply chain network', () => {
     const cardStore = require('composer-common').NetworkCardStoreManager.getCardStore( { type: 'composer-wallet-inmemory' } );
     let adminConnection;
     let businessNetworkConnection;
@@ -91,233 +89,74 @@ describe('Manufacture network', () => {
         factory = businessNetworkConnection.getBusinessNetwork().getFactory();
     });
 
-    describe('PlaceOrder', () => {
-        it('should be able to place an order', async () => {
+describe ('MedicineUnit', () => {
+        it('Manufacturer should be able to add medicinUnit', async () => {
 
-            // create the orderer
-            const orderer = factory.newResource(namespace, 'Person', 'Andy');
+            const manufacturer = factory.newResource( namespace, 'Manufacturer' , 'Manu1');
+            manufacturer.name = 'Manu1' ;
 
-            // create the manufacturer
-            const manufacturer = factory.newResource(namespace, 'Manufacturer', 'Arium');
-            manufacturer.name = 'Arium';
-
-            // create the vehicle details for the order
-            const vehicleDetails = factory.newConcept(namespace, 'VehicleDetails');
-            vehicleDetails.make = factory.newRelationship(namespace, 'Manufacturer', manufacturer.$identifier);
-            vehicleDetails.modelType = 'nova';
-            vehicleDetails.colour = 'statement blue';
-
-            // create the order options
-            const options = factory.newConcept(namespace, 'Options');
-            options.trim = 'executive';
-            options.interior = 'rotor grey';
-            options.extras = ['tinted windows', 'extended warranty'];
-
-            // create the transactionObject
-
-            const placeOrderTx = factory.newTransaction(namespace, 'PlaceOrder');
-            placeOrderTx.orderId = orderId;
-            placeOrderTx.vehicleDetails = vehicleDetails;
-            placeOrderTx.options = options;
-            placeOrderTx.orderer = factory.newRelationship(namespace, 'Person', orderer.$identifier);
-
-            const personRegistry = await businessNetworkConnection.getParticipantRegistry(namespace + '.Person');
-            await personRegistry.add(orderer);
+            const manufacturingBatchTx = factory.newTransaction( namespace , 'AddManufacturingBatchRecord');
+            manufacturingBatchTx.batchId = 'Manu1-batch1';
+            manufacturingBatchTx.location = 'Manu1-location1';
+            manufacturingBatchTx.validForMonths = 24 ;
+            manufacturingBatchTx.manufacturer = factory.newRelationship( namespace,'Manufacturer', manufacturer.$identifier);
+           
 
             const manufacturerRegistry = await businessNetworkConnection.getParticipantRegistry(namespace + '.Manufacturer');
             await manufacturerRegistry.add(manufacturer);
 
-            await businessNetworkConnection.submitTransaction(placeOrderTx);
+            await businessNetworkConnection.submitTransaction(manufacturingBatchTx);
 
-            const orderRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Order');
-            const order = await orderRegistry.get(placeOrderTx.orderId);
 
-            order.orderId.should.deep.equal(placeOrderTx.orderId);
-            order.vehicleDetails.should.deep.equal(vehicleDetails);
-            order.options.should.deep.equal(options);
-            order.orderStatus.should.deep.equal('PLACED');
-            order.orderer.should.deep.equal(placeOrderTx.orderer);
+            const manufacturingBatchRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.ManufacturingBatch');
+            const manufacturingBatch = await manufacturingBatchRegistry.get(manufacturingBatchTx.batchId);
+
+            const addMedicineUnitTx = factory.newTransaction( namespace, 'AddMedicineUnitRecord');
+            addMedicineUnitTx.unitId = 'Manu1-batch1-unit1';
+            addMedicineUnitTx.name = 'med1';
+            addMedicineUnitTx.type = 'STRIP';
+            addMedicineUnitTx.manufacturer = factory.newRelationship( namespace,'Manufacturer', manufacturer.$identifier);
+            addMedicineUnitTx.manufacturingBatch = factory.newRelationship( namespace , 'ManufacturingBatch',  manufacturingBatchTx.batchId) ;
+
+
+            await businessNetworkConnection.submitTransaction( addMedicineUnitTx);
+
+
+            const medicineUnitRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.MedicineUnit');
+            const medicineUnit = await medicineUnitRegistry.resolve(addMedicineUnitTx.unitId);
+
+           medicineUnit.unitId.should.deep.equal(addMedicineUnitTx.unitId);
+            medicineUnit.name.should.deep.equal(addMedicineUnitTx.name);
+            medicineUnit.type.should.deep.equal(addMedicineUnitTx.type);
+            medicineUnit.batch.batchId.should.deep.equal( manufacturingBatch.batchId);
         });
     });
 
-    describe('UpdateOrderStatus', () => {
-        let order;
-        let orderer;
-        let manufacturer;
-        let vehicleDetails;
-        beforeEach(async () => {
-            // create the orderer
-            orderer = factory.newResource(namespace, 'Person', 'Andy');
 
-            // create the manufacturer
-            manufacturer = factory.newResource(namespace, 'Manufacturer', 'Arium');
-            manufacturer.name = 'Arium';
+    describe ('ManufacturingBatch', () => {
+        it('Manufacturer should be able to add manufacturingBatch', async () => {
 
-            // create the vehicle details for the order
-            vehicleDetails = factory.newConcept(namespace, 'VehicleDetails');
-            vehicleDetails.make = factory.newRelationship(namespace, 'Manufacturer', manufacturer.$identifier);
-            vehicleDetails.modelType = 'nova';
-            vehicleDetails.colour = 'statement blue';
+            const manufacturer = factory.newResource( namespace, 'Manufacturer' , 'Manu1');
+            manufacturer.name = 'Manu1' ;
 
-            // create the order options
-            const options = factory.newConcept(namespace, 'Options');
-            options.trim = 'executive';
-            options.interior = 'rotor grey';
-            options.extras = ['tinted windows', 'extended warranty'];
-
-            // create the order to update
-            order = factory.newResource(namespace, 'Order', orderId);
-            order.vehicleDetails = vehicleDetails;
-            order.options = options;
-            order.orderStatus = 'PLACED';
-            order.orderer = factory.newRelationship(namespace, 'Person', orderer.$identifier);
-
-            const personRegistry = await businessNetworkConnection.getParticipantRegistry(namespace + '.Person');
-            await personRegistry.add(orderer);
+            const manufacturingBatchTx = factory.newTransaction( namespace , 'AddManufacturingBatchRecord');
+            manufacturingBatchTx.batchId = 'Manu1-batch1';
+            manufacturingBatchTx.location = 'Manu1-location1';
+            manufacturingBatchTx.validForMonths = 24 ;
+            manufacturingBatchTx.manufacturer = factory.newRelationship( namespace,'Manufacturer', manufacturer.$identifier);
 
             const manufacturerRegistry = await businessNetworkConnection.getParticipantRegistry(namespace + '.Manufacturer');
             await manufacturerRegistry.add(manufacturer);
 
-            const orderRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Order');
-            await orderRegistry.add(order);
-        });
+            await businessNetworkConnection.submitTransaction(manufacturingBatchTx);
 
-        it('should update the status of the order to SCHEDULED_FOR_MANUFACTURE', async () => {
-            const updateOrderStatusTx = factory.newTransaction(namespace, 'UpdateOrderStatus');
-            updateOrderStatusTx.orderStatus = 'SCHEDULED_FOR_MANUFACTURE';
-            updateOrderStatusTx.order = factory.newRelationship(namespace, 'Order', order.$identifier);
+            const manufacturingBatchRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.ManufacturingBatch');
+            const manufacturingBatch = await manufacturingBatchRegistry.get(manufacturingBatchTx.batchId);
 
-            await businessNetworkConnection.submitTransaction(updateOrderStatusTx);
-
-            const orderRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Order');
-            const retrievedOrder = await orderRegistry.get(orderId);
-
-            retrievedOrder.orderStatus.should.deep.equal(updateOrderStatusTx.orderStatus);
-        });
-
-        it('should update the status of the order to VIN_ASSIGNED and create a Vehicle', async () => {
-            const updateOrderStatusTx = factory.newTransaction(namespace, 'UpdateOrderStatus');
-            updateOrderStatusTx.orderStatus = 'VIN_ASSIGNED';
-            updateOrderStatusTx.order = factory.newRelationship(namespace, 'Order', order.$identifier);
-            updateOrderStatusTx.vin = vin;
-
-            await businessNetworkConnection.submitTransaction(updateOrderStatusTx);
-
-            const orderRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Order');
-            const retrievedOrder = await orderRegistry.get(orderId);
-
-            retrievedOrder.orderStatus.should.deep.equal(updateOrderStatusTx.orderStatus);
-
-            const vehicleRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Vehicle');
-            const vehicle = await vehicleRegistry.get(vin);
-
-            vehicle.vin.should.deep.equal(vin);
-            vehicle.vehicleDetails.should.deep.equal(vehicleDetails);
-            vehicle.vehicleStatus.should.deep.equal('OFF_THE_ROAD');
-        });
-
-        it('should update the status of the order to OWNER_ASSIGNED and update the Vehicle', async () => {
-            const updateOrderStatusTx = factory.newTransaction(namespace, 'UpdateOrderStatus');
-            updateOrderStatusTx.orderStatus = 'OWNER_ASSIGNED';
-            updateOrderStatusTx.order = factory.newRelationship(namespace, 'Order', order.$identifier);
-            updateOrderStatusTx.vin = vin;
-
-            const vehicle = factory.newResource(namespace, 'Vehicle', vin);
-            vehicle.vehicleDetails = vehicleDetails;
-            vehicle.vehicleStatus = 'OFF_THE_ROAD';
-
-            const vehicleRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Vehicle');
-            await vehicleRegistry.add(vehicle);
-
-            await businessNetworkConnection.submitTransaction(updateOrderStatusTx);
-
-            const orderRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Order');
-            const retrievedOrder = await orderRegistry.get(orderId);
-
-            retrievedOrder.orderStatus.should.deep.equal(updateOrderStatusTx.orderStatus);
-
-            const retrievedVehicle = await vehicleRegistry.get(vin);
-
-            retrievedVehicle.vin.should.deep.equal(vin);
-            retrievedVehicle.vehicleStatus.should.deep.equal('ACTIVE');
-            retrievedVehicle.owner.should.deep.equal(order.orderer);
-        });
-
-        it('should update the status of the order to DELIVERED', async () => {
-            const updateOrderStatusTx = factory.newTransaction(namespace, 'UpdateOrderStatus');
-            updateOrderStatusTx.orderStatus = 'DELIVERED';
-            updateOrderStatusTx.order = factory.newRelationship(namespace, 'Order', order.$identifier);
-
-            await businessNetworkConnection.submitTransaction(updateOrderStatusTx);
-
-            const orderRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Order');
-            const retrievedOrder = await orderRegistry.get(orderId);
-
-            retrievedOrder.orderStatus.should.deep.equal(updateOrderStatusTx.orderStatus);
-        });
-
-        it('should throw an error if the vin is not passed when orderStatus set to VIN_ASSIGNED', async () => {
-            const updateOrderStatusTx = factory.newTransaction(namespace, 'UpdateOrderStatus');
-            updateOrderStatusTx.orderStatus = 'VIN_ASSIGNED';
-            updateOrderStatusTx.order = factory.newRelationship(namespace, 'Order', order.$identifier);
-
-            return businessNetworkConnection.submitTransaction(updateOrderStatusTx).should.be.rejectedWith('Value for VIN was expected');
-        });
-
-        it('should throw an error if the vin is not passed when orderStatus set to OWNER_ASSIGNED', async () => {
-            const updateOrderStatusTx = factory.newTransaction(namespace, 'UpdateOrderStatus');
-            updateOrderStatusTx.orderStatus = 'OWNER_ASSIGNED';
-            updateOrderStatusTx.order = factory.newRelationship(namespace, 'Order', order.$identifier);
-
-            return businessNetworkConnection.submitTransaction(updateOrderStatusTx).should.be.rejectedWith('Value for VIN was expected');
+            manufacturingBatch.batchId.should.deep.equal(manufacturingBatchTx.batchId);
+            manufacturingBatch.location.should.deep.equal(manufacturingBatchTx.location);
         });
     });
 
-    describe('SetupDemo', () => {
-        it('should add specified participants and vehicles for the demo scenario', async () => {
-            const setupDemoTx = factory.newTransaction(namespace, 'SetupDemo');
-
-            const expectedPeopleNames = ['Paul', 'Andy', 'Hannah', 'Sam', 'Caroline', 'Matt', 'Fenglian', 'Mark', 'James', 'Dave', 'Rob', 'Kai', 'Ellis', 'LesleyAnn'];
-            const expectedPeople = expectedPeopleNames.map((expectedPerson) => {
-                return factory.newResource(namespace, 'Person', expectedPerson);
-            });
-
-            const expectedManufacturerNames = ['Arium', 'Morde', 'Ridge'];
-            const expectedManufacturers = expectedManufacturerNames.map((expectedManufacturer) => {
-                const manufacturer = factory.newResource(namespace, 'Manufacturer', expectedManufacturer);
-                manufacturer.name = expectedManufacturer;
-                return manufacturer;
-            });
-
-            const expectedVins = ['ea290d9f5a6833a65', '39fd242c2bbe80f11', '835125e50bca37ca1', '0812e6d8d486e0464', 'c4aa418f26d4a0403', '7382fbfc083f696e5', '01a9cd3f8f5db5ef7', '97f305df4c2881e71', 'af462063fb901d0e6', '3ff3395ecfd38f787', 'de701fcf2a78d8086', '2fcdd7b5131e81fd0', '79540e5384c970321'];
-
-            await businessNetworkConnection.submitTransaction(setupDemoTx);
-
-            const personRegistry = await businessNetworkConnection.getParticipantRegistry(namespace + '.Person');
-            const people = await personRegistry.getAll();
-
-            people.length.should.deep.equal(14);
-            people.forEach((person) => {
-                expectedPeople.should.include(person);
-            });
-
-            const manufacturerRegistry = await businessNetworkConnection.getParticipantRegistry(namespace + '.Manufacturer');
-            const manufacturers = await manufacturerRegistry.getAll();
-
-            manufacturers.length.should.deep.equal(3);
-            manufacturers.forEach((manufacturer) => {
-                expectedManufacturers.should.include(manufacturer);
-            });
-
-            const vehicleRegistry = await businessNetworkConnection.getAssetRegistry(namespace + '.Vehicle');
-            const vehicles = await vehicleRegistry.getAll();
-
-            vehicles.length.should.deep.equal(13);
-            vehicles.forEach((vehicle) => {
-                expectedVins.should.include(vehicle.vin);
-                expectedManufacturerNames.should.include(vehicle.vehicleDetails.make.$identifier);
-                expectedPeopleNames.slice(1, 14).should.include(vehicle.owner.$identifier); // paul shouldn't have a vehicle
-            });
-        });
-    });
+    
 });

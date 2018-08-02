@@ -1,15 +1,13 @@
 {
 	"engines": {
-		"composer": "^0.18.0"
+		"composer": "^0.19.4"
 	},
 	"name": "medicine-supply-chain-network",
 	"description": "Medicin Supply Chain network",
-	"networkImage": "https://hyperledger.github.io/composer-sample-networks/packages/vehicle-manufacture-network/networkimage.svg",
-	"networkImageanimated": "https://hyperledger.github.io/composer-sample-networks/packages/vehicle-manufacture-network/networkimageanimated.svg",
-	"version": "0.2.3",
+	"version": "0.1.0",
 	"scripts": {
 		"prepublish": "mkdirp ./dist && composer archive create --sourceType dir --sourceName . -a ./dist/medicin-supply-chain-network.bna",
-		"pretest": "npm run lint",
+		
 		"lint": "eslint .",
 		"postlint": "npm run licchk",
 		"licchk": "license-check",

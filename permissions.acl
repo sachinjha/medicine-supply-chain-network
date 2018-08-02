@@ -1,82 +1,131 @@
-rule PersonMakeOrder {
- 	description: "Allow Persons to create and view orders"
-  	participant(p): "org.acme.vehicle_network.Person"
+rule ManufactuererAddBatch {
+	description: "Allow Persons to create ManufacturingBatch"
+  	participant(m): "org.acme.medicine.supply_chain_network.Manufacturer"
   	operation: CREATE
-  	resource(o): "org.acme.vehicle_network.Order"
-  	transaction(tx): "org.acme.vehicle_network.PlaceOrder"
-  	condition: (o.orderer.getIdentifier() == p.getIdentifier())
+  	resource(o): "org.acme.medicine.supply_chain_network.ManufacturingBatch"
+	condition: (m.getIdentifier() == o.manufacturer.getIdentifier())
   	action: ALLOW
 }
 
-rule PersonPlaceOrder {
- 	description: "Allow Persons to place orders and view they've done this"
-  	participant(p): "org.acme.vehicle_network.Person"
-  	operation: CREATE, READ
-  	resource(o): "org.acme.vehicle_network.PlaceOrder"
-  	condition: (o.orderer.getIdentifier() == p.getIdentifier())
+rule ManufactuererAddMedicineUnit {
+	description: "Allow Manufactuer to add medicineUnit under  ManufacturingBatch owned by it"
+  	participant(m): "org.acme.medicine.supply_chain_network.Manufacturer"
+  	operation: CREATE
+  	resource(o): "org.acme.medicine.supply_chain_network.MedicineUnit"
+	transaction(tx): "org.acme.medicine.supply_chain_network.AddMedicineUnitRecord"
+	condition: (m.getIdentifier() == o.batch.manufacturer.getIdentifier())
   	action: ALLOW
 }
 
-rule PersonReadOrder {
-    description: "Allow Persons to place orders and view they've done this"
-  	participant(p): "org.acme.vehicle_network.Person"
+
+rule DistributorCreatePurchaseOrder {
+	description: "Allow Distributor to createPurchaseOrder"
+  	participant(m): "org.acme.medicine.supply_chain_network.Distributor"
+  	operation: CREATE,READ
+  	resource(o): "org.acme.medicine.supply_chain_network.PurchaseOrder"
+	transaction(tx): "org.acme.medicine.supply_chain_network.CreatePurchaseOrder"
+	condition: (o.cretedFor.getIdentifier() != o.createdBy.getIdentifier())
+  	action: ALLOW
+}
+
+rule RetailerCreatePurchaseOrder {
+	description: "Allow Retailer to createPurchaseOrder"
+  	participant(m): "org.acme.medicine.supply_chain_network.Retailer"
+  	operation: CREATE,READ
+  	resource(o): "org.acme.medicine.supply_chain_network.PurchaseOrder"
+	transaction(tx): "org.acme.medicine.supply_chain_network.CreatePurchaseOrder"
+	condition: (o.cretedFor.getIdentifier() != o.createdBy.getIdentifier())
+  	action: ALLOW
+}
+
+rule DistributororManufacturerUpdatePurchaseOrder{
+	description: "Allow Manufactuer or distributor to update purchaseOrder assigned to them"
+  	participant(m): "ANY"
+  	operation: CREATE
+  	resource(o): "org.acme.medicine.supply_chain_network.PurchaseOrder"
+	transaction(tx): "org.acme.medicine.supply_chain_network.AcceptOrder"
+	condition: (m.getIdentifier() == o.createdFor.getIdentifier())
+  	action: ALLOW
+}
+
+rule DistributorOrManufacturerAcceptOrder{
+	description: "Allow Manufactuer or distributor to accept purchaseOrder assigned to them"
+  	participant(m): "ANY"
+  	operation: CREATE,READ
+  	resource(o): "org.acme.medicine.supply_chain_network.SalesOrder"
+	transaction(tx): "org.acme.medicine.supply_chain_network.AcceptOrder"
+	condition: (m.getIdentifier() == o.purchaseOrder.createdFor.getIdentifier())
+  	action: ALLOW
+}
+
+rule DistributorOrManufacturerCreateShippingRequest{
+	description: "Allow Manufactuer or distributor to create ShippingRequest related to SalesOrder created by It"
+  	participant(m): "ANY"
+  	operation: CREATE
+  	resource(o): "org.acme.medicine.supply_chain_network.ShippingRequest"
+	transaction(tx): "org.acme.medicine.supply_chain_network.CreateShippingRequest"
+	condition: (m.getIdentifier() == o.salesOrder.createdBy.getIdentifier())
+  	action: ALLOW
+}
+
+rule ReadShippingRequest{
+	description: "Allow creater or Assignee to read shipping request"
+  	participant(m): "ANY"
   	operation: READ
-  	resource(o): "org.acme.vehicle_network.Order"
-  	condition: (o.orderer.getIdentifier() == p.getIdentifier())
+  	resource(o): "org.acme.medicine.supply_chain_network.ShippingRequest"
+	transaction(tx): "org.acme.medicine.supply_chain_network.CreateShippingRequest"
+	condition: (( m.getIdentifier() == o.logistics.getIdentifier() )|| (m.getIdentifier() == o.from.getIdentifier()  ))
   	action: ALLOW
 }
 
-rule ManufacturerUpdateOrder {
- 	description: "Allow manufacturers to view and update their own orders"
-  	participant(m): "org.acme.vehicle_network.Manufacturer"
+rule DistributorOrManufacturerCreateShippingContainer{
+	description: "Allow Manufactuer or distributor to create ShippingContainer related to ShippingRequest created by It"
+  	participant(m): "ANY"
+  	operation: CREATE
+  	resource(o): "org.acme.medicine.supply_chain_network.ShippingContainer"
+	transaction(tx): "org.acme.medicine.supply_chain_network.CreateShippingRequest"
+	condition: (m.getIdentifier() == o.request.from.getIdentifier())
+  	action: ALLOW
+}
+
+
+
+
+rule LogisticsAcceptShippingRequest{
+	description: "Allow Manufactuer to add medicineUnit under  ManufacturingBatch owned by it"
+  	participant(m): "org.acme.medicine.supply_chain_network.LogisticsProvider"
   	operation: UPDATE
-  	resource(o): "org.acme.vehicle_network.Order"
-  	transaction(tx): "org.acme.vehicle_network.UpdateOrderStatus"
-  	condition: (o.vehicleDetails.make.getIdentifier() == m.getIdentifier())
+  	resource(o): "org.acme.medicine.supply_chain_network.ShippingRequest"
+	transaction(tx): "org.acme.medicine.supply_chain_network.AcceptShippingRequest"
+	condition: (m.getIdentifier() == o.logistics.getIdentifier())
   	action: ALLOW
 }
 
-rule ManufacturerUpdateOrderStatus {
- 	description: "Allow manufacturers to update order statuses and view they've done this"
-  	participant(m): "org.acme.vehicle_network.Manufacturer"
-  	operation: CREATE, READ
-  	resource(o): "org.acme.vehicle_network.UpdateOrderStatus"
-  	condition: (o.order.vehicleDetails.make.getIdentifier() == m.getIdentifier())
+
+rule ReadUpdateShippingContainer{
+	description: "Allow Onwer of shipping container to update it"
+  	participant(m): "ANY"
+  	operation: UPDATE,READ
+  	resource(o): "org.acme.medicine.supply_chain_network.ShippingContainer"
+	condition: (m.getIdentifier() == o.owner.getIdentifier())
   	action: ALLOW
 }
 
-rule ManufacturerReadOrder {
- 	description: "Allow manufacturers to view and update their own orders"
-  	participant(m): "org.acme.vehicle_network.Manufacturer"
-  	operation: READ
-  	resource(o): "org.acme.vehicle_network.Order"
-  	condition: (o.vehicleDetails.make.getIdentifier() == m.getIdentifier())
+rule ReadUpdateMedicineUnit {
+	description: "Allow Onwer of MedicineUnit to update "
+  	participant(m): "ANY"
+  	operation: UPDATE,READ
+  	resource(o): "org.acme.medicine.supply_chain_network.MedicineUnit"
+	condition: (m.getIdentifier() == o.owner.getIdentifier())
   	action: ALLOW
 }
 
-rule ManufacturerCreateVehicles {
-  	description: "Allow manufacturers to create and view their vehicles"
-  	participant(m): "org.acme.vehicle_network.Manufacturer"
-  	operation: CREATE
-  	resource(v): "org.acme.vehicle_network.Vehicle"
-  	transaction(tx): "org.acme.vehicle_network.UpdateOrderStatus"
-  	condition: (v.vehicleDetails.make.getIdentifier() == m.getIdentifier() && tx.orderStatus == "VIN_ASSIGNED")
-  	action: ALLOW
-}
 
-rule ManufacturerReadVehicles {
-  	description: "Allow manufacturers to create and view their vehicles"
-  	participant(m): "org.acme.vehicle_network.Manufacturer"
-  	operation: READ
-  	resource(v): "org.acme.vehicle_network.Vehicle"
-  	condition: (v.vehicleDetails.make.getIdentifier() == m.getIdentifier())
-  	action: ALLOW
-}
 
 rule RegulatorAdminUser {
- 	description: "Let the regulator do anything"
-  	participant: "org.acme.vehicle_network.Regulator"
-  	operation: ALL
+ 	description: "Let the regulator read anything"
+  	participant: "org.acme.medicine.supply_chain_network.Regulator"
+  	operation: READ
     resource: "**"
   	action: ALLOW
 }

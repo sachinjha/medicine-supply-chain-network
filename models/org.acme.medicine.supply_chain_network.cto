@@ -104,7 +104,15 @@ abstract participant Company identified by companyId {
   o String name
 }
 
+participant Retailer extends Company {
+
+}
+
 participant LogisticsProvider extends Company {
+
+}
+
+participant Regulator extends Company {
 
 }
 
@@ -126,6 +134,8 @@ participant Person identified by personId {
 transaction AddManufacturingBatchRecord { 
   o String batchId 
   o String  location 
+  o Integer validForMonths
+  --> Manufacturer manufacturer
 }
 
 transaction AddMedicineUnitRecord {
@@ -133,6 +143,7 @@ transaction AddMedicineUnitRecord {
   o String  name
   o UnitType type
   --> ManufacturingBatch manufacturingBatch
+  --> Manufacturer manufacturer 
 }
 
 transaction CreatePurchaseOrder {
@@ -174,13 +185,14 @@ transaction GoodsReceived {
 
 transaction SoldToCustomer {
   --> Person customer 
-  --> MedicineUnit medicineUnit
-  --> Company retailer
+  --> MedicineUnit[] medicines
+  --> Retailer retailer
 }
 
+
 transaction VerifyAuthenticity {
-  --> Person verifier
-  --> MedicineUnit medicineUnit
+  o String unitId
+  o String owner 
 }
 
 
